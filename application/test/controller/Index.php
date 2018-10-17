@@ -7,7 +7,7 @@ class Index extends Controller
     public function autopull()
     {
 		$param=input('param.');
-		
+		$param=json_encode($param);
   		Db::name('test')->insert(['con'=>$param]);
     }
     public function index()
