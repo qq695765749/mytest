@@ -9,6 +9,27 @@ class Index extends Controller
 		$param=input('param.');
 		$param=json_encode($param);
   		Db::name('test')->insert(['con'=>$param]);
+
+  		// 与webhook配置相同，为了安全，请设置此参数
+  		$secret = "123456789";
+  		// 项目路径
+  		$path = "/var/www/html/mytest/";
+  		// 校验发送位置，正确的情况下自动拉取代码，实现自动部署
+  		$signature = $_SERVER['HTTP_X_HUB_SIGNATURE'];
+  		if ($signature) {
+  			$hash = "sha1=".hash_hmac('sha1', file_get_contents("php://input"), $secret);
+  			if (strcmp($signature, $hash) == 0) {
+  				echo shell_exec("cd {$path} && git pull");
+  				exit();
+  			}
+  		}
+  		http_response_code(404);
+  		
+  		---------------------
+  		作者：xfcy514728
+  		来源：CSDN
+  		原文：https://blog.csdn.net/xfcy514728/article/details/80293042?utm_source=copy
+  		版权声明：本文为博主原创文章，转载请附上博文链接！
     }
     public function index()
     {
@@ -17,4 +38,23 @@ class Index extends Controller
   		dump(json_decode($a['payload'],1));
     }
     
+    public function index2()
+    {
+		// 与webhook配置相同，为了安全，请设置此参数
+		$secret = "wmhello";
+		// 项目路径
+		$path = "d:/www/apidemo";
+		// 校验发送位置，正确的情况下自动拉取代码，实现自动部署
+		$signature = $_SERVER['HTTP_X_HUB_SIGNATURE'];
+		if ($signature) {
+			$hash = "sha1=".hash_hmac('sha1', file_get_contents("php://input"), $secret);
+			if (strcmp($signature, $hash) == 0) {
+				echo shell_exec("cd \ && cd {$path} && git pull 2>&1");
+				exit();
+			}
+		}
+    }
+    
+    
 }
+
