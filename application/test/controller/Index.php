@@ -6,25 +6,71 @@ class Index extends Controller
 {
     public function autopull()
     {
-		$param=input('param.');
-		$param=json_encode($param);
-  		Db::name('test')->insert(['con'=>$param]);
+// ±¾µØ²Ö¿âÂ·¾¶
+$local = '/var/www/html/mytest';
 
-  		// ä¸webhooké…ç½®ç›¸åŒï¼Œä¸ºäº†å®‰å…¨ï¼Œè¯·è®¾ç½®æ­¤å‚æ•°
-  		$secret = "123456789";
-  		// é¡¹ç›®è·¯å¾„
-  		$path = "/var/www/html/mytest/";
-  		// æ ¡éªŒå‘é€ä½ç½®ï¼Œæ­£ç¡®çš„æƒ…å†µä¸‹è‡ªåŠ¨æ‹‰å–ä»£ç ï¼Œå®ç°è‡ªåŠ¨éƒ¨ç½²
-  		$signature = $_SERVER['HTTP_X_HUB_SIGNATURE'];
-  		if ($signature) {
-  			$hash = "sha1=".hash_hmac('sha1', file_get_contents("php://input"), $secret);
-  			if (strcmp($signature, $hash) == 0) { 
-  				echo shell_exec("cd {$path} && git pull");
-  				exit();
-  			}
-  		}
-  		http_response_code(404);
+// °²È«ÑéÖ¤×Ö·û´®£¬Îª¿ÕÔò²»ÑéÖ¤
+$token = '';
 
+
+// Èç¹ûÆôÓÃÑéÖ¤£¬²¢ÇÒÑéÖ¤Ê§°Ü£¬·µ»Ø´íÎó
+$httpToken = isset($_SERVER['HTTP_X_GITLAB_TOKEN']) ? $_SERVER['HTTP_X_GITLAB_TOKEN'] : '';
+if ($token && $httpToken != $token) {
+    header('HTTP/1.1 403 Permission Denied');
+    die('Permission denied.');
+}
+
+// Èç¹û²Ö¿âÄ¿Â¼²»´æÔÚ£¬·µ»Ø´íÎó
+if (!is_dir($local)) {
+    header('HTTP/1.1 500 Internal Server Error');
+    die('Local directory is missing');
+}
+
+//Èç¹ûÇëÇóÌåÄÚÈİÎª¿Õ£¬·µ»Ø´íÎó
+$payload = file_get_contents('php://input');
+if (!$payload) {
+    header('HTTP/1.1 400 Bad Request');
+    die('HTTP HEADER or POST is missing.');
+}
+
+/*
+ * ÕâÀïÓĞ¼¸µãĞèÒª×¢Òâ£º
+ *
+ * 1.È·±£PHPÕı³£Ö´ĞĞÏµÍ³ÃüÁî¡£Ğ´Ò»¸öPHPÎÄ¼ş£¬ÄÚÈİ£º
+ * `<?php shell_exec('ls -la')`
+ * ÔÚÍ¨¹ıä¯ÀÀÆ÷·ÃÎÊÕâ¸öÎÄ¼ş£¬ÄÜ¹»Êä³öÄ¿Â¼½á¹¹ËµÃ÷PHP¿ÉÒÔÔËĞĞÏµÍ³ÃüÁî¡£
+ *
+ * 2¡¢PHPÒ»°ãÊ¹ÓÃwww-data»òÕßnginxÓÃ»§ÔËĞĞ£¬PHPÍ¨¹ı½Å±¾Ö´ĞĞÏµÍ³ÃüÁîÒ²ÊÇÓÃÕâ¸öÓÃ»§£¬
+ * ËùÒÔ±ØĞëÈ·±£ÔÚ¸ÃÓÃ»§¼ÒÄ¿Â¼£¨Ò»°ãÊÇ/home/www-data»ò/home/nginx£©ÏÂÓĞ.sshÄ¿Â¼ºÍ
+ * Ò»Ğ©ÊÚÈ¨ÎÄ¼ş£¬ÒÔ¼°gitÅäÖÃÎÄ¼ş£¬ÈçÏÂ£º
+ * ```
+ * + .ssh
+ *   - authorized_keys
+ *   - config
+ *   - id_rsa
+ *   - id_rsa.pub
+ *   - known_hosts
+ * - .gitconfig
+ * ```
+ *
+ * 3.ÔÚÖ´ĞĞµÄÃüÁîºóÃæ¼ÓÉÏ2>&1¿ÉÒÔÊä³öÏêÏ¸ĞÅÏ¢£¬È·¶¨´íÎóÎ»ÖÃ
+ *
+ * 4.gitÄ¿Â¼È¨ÏŞÎÊÌâ¡£±ÈÈç£º
+ * `fatal: Unable to create '/data/www/html/awaimai/.git/index.lock': Permission denied`
+ * ÄÇ¾ÍÊÇPHPÓÃ»§Ã»ÓĞĞ´È¨ÏŞ£¬ĞèÒª¸øÄ¿Â¼ÊÚÓèÈ¨ÏŞ:
+ * ``
+ * sudo chown -R :www-data /data/www/html/awaimai`
+ * sudo chmod -R g+w /data/www/html/awaimai
+ * ```
+ *
+ * 5.SSHÈÏÖ¤ÎÊÌâ¡£Èç¹ûÊÇÍ¨¹ıSSHÈÏÖ¤£¬ÓĞ¿ÉÄÜÌáÊ¾´íÎó£º
+ * `Could not create directory '/.ssh'.`
+ * »òÕß
+ * `Host key verification failed.`
+ *
+ */
+echo shell_exec("cd {$local} && git pull 2>&1");
+die("done " . date('Y-m-d H:i:s', time()));
     }
    
     
